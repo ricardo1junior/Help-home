@@ -31,8 +31,7 @@ async function mp<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const mercadoPagoGateway: PaymentGateway = {
   name: "mercadopago",
 
-  async createCheckout({ payment, title, payerEmail, siteUrl }) {
-    const back = `${siteUrl}/pagamento/${payment.id}/retorno`;
+  async createCheckout({ payment, title, payerEmail, siteUrl, backUrl: back }) {
     const preference = await mp<{ init_point: string }>("/checkout/preferences", {
       method: "POST",
       body: JSON.stringify({

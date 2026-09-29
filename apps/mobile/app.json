@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Help Home",
+    "slug": "help-home",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "helphome",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "br.com.helphome.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "br.com.helphome.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF7ED",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF7ED",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Help Home usa sua localização para marcar o local do serviço e mostrar os pedidos mais perto de você."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Help Home precisa acessar suas fotos para você mostrar o problema e o serviço feito.",
+          "cameraPermission": "O Help Home usa a câmera para tirar fotos do problema e do serviço feito."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

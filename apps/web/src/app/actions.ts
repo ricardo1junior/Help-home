@@ -10,7 +10,6 @@ import {
   createWarrantyClaim,
   getCurrentProfile,
   getPayment,
-  getRequest,
   isValidCnpj,
   resolveWarrantyClaim,
   parsePriceToCents,
@@ -27,8 +26,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasAdminKey } from "@/lib/supabase/admin";
 import { homeFor } from "@/lib/session";
 import { lookupCnpj } from "@/lib/cnpj-lookup";
-import { getGateway, isTestModeAllowed } from "@/lib/payments/gateway";
+import { isTestModeAllowed } from "@/lib/payments/gateway";
 import { markPaymentHeld, refundIfNeeded } from "@/lib/payments/confirm";
+import { createCheckoutUrl } from "@/lib/payments/checkout";
 
 export type FormState = { error?: string; ok?: boolean } | undefined;
 
@@ -209,17 +209,13 @@ export async function setStatusAction(requestId: string, status: RequestStatus):
 
 export async function startCheckoutAction(paymentId: string) {
   const { supabase, profile } = await requireUser();
-  const payment = await getPayment(supabase, paymentId);
-  if (!payment || payment.client_id !== profile.id || payment.status !== "pending") redirect("/pedidos");
-  const request = await getRequest(supabase, payment.request_id);
   const { data } = await supabase.auth.getUser();
-  const url = await getGateway().createCheckout({
-    payment,
-    title: request?.title ?? "Serviço",
-    payerEmail: data.user?.email,
+  const url = await createCheckoutUrl(supabase, profile, paymentId, {
+    email: data.user?.email,
     siteUrl: await siteUrl(),
+    source: "web",
   });
-  redirect(url);
+  redirect(url ?? "/pedidos");
 }
 
 /** Aprova um pagamento no modo de teste (só funciona sem o Mercado Pago configurado). */
