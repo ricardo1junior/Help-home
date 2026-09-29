@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import type { Category, Profile } from "@helphome/shared";
+import { formatCnpj, type Category, type Profile } from "@helphome/shared";
+import { VerifiedBadge } from "@/components/stars";
 import { saveProviderProfileAction } from "@/app/actions";
 import { FormError } from "@/components/form-error";
 
@@ -18,6 +19,12 @@ export function ProfileForm({
   const [state, action, pending] = useActionState(saveProviderProfileAction, undefined);
   return (
     <form action={action} className="card mt-6 space-y-5">
+      <div className="rounded-xl bg-slate-50 p-4 text-sm">
+        <p className="flex flex-wrap items-center gap-2 font-medium">
+          {profile.company_name || "Empresa"} <VerifiedBadge verified={profile.cnpj_verified} />
+        </p>
+        <p className="text-slate-600">CNPJ {profile.cnpj ? formatCnpj(profile.cnpj) : "-"}</p>
+      </div>
       <fieldset>
         <legend className="label">Serviços que você faz</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

@@ -18,9 +18,16 @@ import {
   type ReviewInput,
   type SignInInput,
   type SignUpInput,
+  type WarrantyClaimInput,
+  warrantyClaimSchema,
 } from "./schemas";
 import type {
   Category,
+  ClientRating,
+  Payment,
+  PhotoKind,
+  ServicePhoto,
+  WarrantyClaim,
   Message,
   Profile,
   ProviderRating,
@@ -40,8 +47,8 @@ function unwrap<T>({ data, error }: { data: unknown; error: { message: string } 
 }
 
 const REQUEST_WITH_CATEGORY = "*, category:categories(*)";
-const REQUEST_DETAIL =
-  "*, category:categories(*), client:profiles!service_requests_client_id_fkey(id, full_name, city), provider:profiles!service_requests_provider_id_fkey(id, full_name, city)";
+const PUBLIC_PROFILE = "id, full_name, city, company_name, cnpj_verified";
+const REQUEST_DETAIL = `*, category:categories(*), client:profiles!service_requests_client_id_fkey(${PUBLIC_PROFILE}), provider:profiles!service_requests_provider_id_fkey(${PUBLIC_PROFILE})`;
 
 // ---------------------------------------------------------------------------
 // Autenticação e perfil
@@ -216,7 +223,7 @@ export async function listQuotes(sb: Client, requestId: string): Promise<QuoteWi
   return unwrap(
     await sb
       .from("quotes")
-      .select("*, provider:profiles(id, full_name, city)")
+      .select(`*, provider:profiles(${PUBLIC_PROFILE})`)
       .eq("request_id", requestId)
       .order("price_cents"),
   );
@@ -241,8 +248,29 @@ export async function withdrawQuote(sb: Client, quoteId: string) {
   unwrap(await sb.from("quotes").update({ status: "withdrawn" }).eq("id", quoteId));
 }
 
-export async function acceptQuote(sb: Client, quoteId: string) {
-  unwrap(await sb.rpc("accept_quote", { p_quote_id: quoteId }));
+/** Aceita o orçamento e devolve o id do pagamento que o cliente precisa fazer. */
+export async function acceptQuote(sb: Client, quoteId: string): Promise<string> {
+  return unwrap(await sb.rpc("accept_quote", { p_quote_id: quoteId }));
+}
+
+// ---------------------------------------------------------------------------
+// Pagamentos
+// ---------------------------------------------------------------------------
+
+export async function getPayment(sb: Client, paymentId: string): Promise<Payment | null> {
+  return unwrap(await sb.from("payments").select("*").eq("id", paymentId).maybeSingle());
+}
+
+export async function getPaymentForRequest(sb: Client, requestId: string): Promise<Payment | null> {
+  return unwrap(
+    await sb
+      .from("payments")
+      .select("*")
+      .eq("request_id", requestId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -281,17 +309,61 @@ export function subscribeToMessages(sb: Client, requestId: string, onMessage: (m
 }
 
 // ---------------------------------------------------------------------------
-// Avaliações
+// Fotos de antes e depois
 // ---------------------------------------------------------------------------
 
-export async function getReviewForRequest(sb: Client, requestId: string): Promise<Review | null> {
-  return unwrap(await sb.from("reviews").select("*").eq("request_id", requestId).maybeSingle());
+export async function listServicePhotos(sb: Client, requestId: string): Promise<ServicePhoto[]> {
+  return unwrap(
+    await sb.from("service_photos").select("*").eq("request_id", requestId).order("created_at"),
+  );
+}
+
+export async function addServicePhoto(sb: Client, userId: string, requestId: string, kind: PhotoKind, url: string) {
+  unwrap(
+    await sb.from("service_photos").insert({ request_id: requestId, uploaded_by: userId, kind, url }),
+  );
+}
+
+export async function deleteServicePhoto(sb: Client, photoId: string) {
+  unwrap(await sb.from("service_photos").delete().eq("id", photoId));
+}
+
+// ---------------------------------------------------------------------------
+// Garantia
+// ---------------------------------------------------------------------------
+
+export async function listWarrantyClaims(sb: Client, requestId: string): Promise<WarrantyClaim[]> {
+  return unwrap(
+    await sb.from("warranty_claims").select("*").eq("request_id", requestId).order("created_at"),
+  );
+}
+
+export async function createWarrantyClaim(sb: Client, clientId: string, requestId: string, input: WarrantyClaimInput) {
+  const values = warrantyClaimSchema.parse(input);
+  unwrap(await sb.from("warranty_claims").insert({ ...values, client_id: clientId, request_id: requestId }));
+}
+
+export async function resolveWarrantyClaim(sb: Client, claimId: string) {
+  unwrap(
+    await sb
+      .from("warranty_claims")
+      .update({ status: "resolved", resolved_at: new Date().toISOString() })
+      .eq("id", claimId),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Avaliações (cliente avalia o prestador e o prestador avalia o cliente)
+// ---------------------------------------------------------------------------
+
+export async function listReviewsForRequest(sb: Client, requestId: string): Promise<Review[]> {
+  return unwrap(await sb.from("reviews").select("*").eq("request_id", requestId));
 }
 
 export async function createReview(
   sb: Client,
-  clientId: string,
-  providerId: string,
+  reviewerId: string,
+  revieweeId: string,
   requestId: string,
   input: ReviewInput,
 ) {
@@ -299,16 +371,20 @@ export async function createReview(
   unwrap(
     await sb
       .from("reviews")
-      .insert({ ...values, client_id: clientId, provider_id: providerId, request_id: requestId }),
+      .insert({ ...values, reviewer_id: reviewerId, reviewee_id: revieweeId, request_id: requestId }),
   );
 }
 
-export async function listProviderReviews(sb: Client, providerId: string): Promise<Review[]> {
+export async function listReviewsAbout(sb: Client, profileId: string): Promise<Review[]> {
   return unwrap(
     await sb
       .from("reviews")
       .select("*")
-      .eq("provider_id", providerId)
+      .eq("reviewee_id", profileId)
       .order("created_at", { ascending: false }),
   );
+}
+
+export async function getClientRating(sb: Client, clientId: string): Promise<ClientRating | null> {
+  return unwrap(await sb.from("client_ratings").select("*").eq("client_id", clientId).maybeSingle());
 }

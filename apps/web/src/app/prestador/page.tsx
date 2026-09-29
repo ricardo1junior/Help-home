@@ -38,7 +38,9 @@ export default async function PrestadorPage({ searchParams }: PageProps<"/presta
         <div>
           <h1 className="text-2xl font-bold">Olá, {profile.full_name.split(" ")[0] || "prestador"}!</h1>
           <p className="text-sm text-slate-600">
-            {rating ? `★ ${rating.average} em ${rating.total} avaliação(ões)` : "Você ainda não tem avaliações."}
+            {rating && (rating.total || rating.late_jobs)
+              ? `Sua nota: ★ ${rating.average} · ${rating.total} avaliação(ões)${rating.late_jobs ? ` · ${rating.late_jobs} serviço(s) fora do prazo` : ""}`
+              : "Você ainda não tem avaliações."}
           </p>
         </div>
         <Link href="/prestador/perfil" className="btn-secondary">Editar perfil</Link>

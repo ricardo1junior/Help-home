@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "./env";
 
-const PROTECTED = ["/painel", "/pedidos", "/prestador"];
+const PROTECTED = ["/painel", "/pedidos", "/prestador", "/pagamento"];
 
 /** Renova a sessão do Supabase e manda para o login quem não estiver logado. */
 export async function updateSession(request: NextRequest) {

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import type { UserRole } from "@helphome/shared";
+import { useFormAction } from "@/hooks/use-form-action";
+import { useState } from "react";
+import { formatCnpj, type UserRole } from "@helphome/shared";
 import { signUpAction } from "@/app/actions";
 import { FormError } from "@/components/form-error";
 
@@ -12,7 +13,8 @@ const ROLES: { value: UserRole; title: string; text: string }[] = [
 
 export function SignUpForm({ initialRole }: { initialRole: UserRole }) {
   const [role, setRole] = useState<UserRole>(initialRole);
-  const [state, action, pending] = useActionState(signUpAction, undefined);
+  const [cnpj, setCnpj] = useState("");
+  const [state, action, pending] = useFormAction(signUpAction, undefined);
 
   if (state?.ok) {
     return (
@@ -26,7 +28,7 @@ export function SignUpForm({ initialRole }: { initialRole: UserRole }) {
   }
 
   return (
-    <form action={action} className="card mt-6 space-y-4">
+    <form onSubmit={action} className="card mt-6 space-y-4">
       <fieldset className="grid grid-cols-2 gap-2">
         <legend className="label">Como você quer usar o Help Home?</legend>
         {ROLES.map((r) => (
@@ -49,8 +51,26 @@ export function SignUpForm({ initialRole }: { initialRole: UserRole }) {
           </label>
         ))}
       </fieldset>
+      {role === "provider" && (
+        <div>
+          <label className="label" htmlFor="cnpj">CNPJ</label>
+          <input
+            className="input"
+            id="cnpj"
+            name="cnpj"
+            inputMode="numeric"
+            placeholder="00.000.000/0000-00"
+            value={cnpj}
+            onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+            required
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Para oferecer serviços é preciso ter CNPJ ativo (MEI serve). Conferimos na Receita Federal.
+          </p>
+        </div>
+      )}
       <div>
-        <label className="label" htmlFor="full_name">Nome completo</label>
+        <label className="label" htmlFor="full_name">{role === "provider" ? "Seu nome (responsável)" : "Nome completo"}</label>
         <input className="input" id="full_name" name="full_name" autoComplete="name" required />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
