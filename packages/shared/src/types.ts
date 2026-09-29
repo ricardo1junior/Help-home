@@ -26,6 +26,9 @@ export interface Profile {
   cnpj: string | null;
   company_name: string | null;
   cnpj_verified: boolean;
+  base_lat: number | null;
+  base_lng: number | null;
+  service_radius_km: number;
   created_at: string;
 }
 
@@ -52,6 +55,9 @@ export interface ServiceRequest {
   finished_at: string | null;
   completed_at: string | null;
   warranty_until: string | null;
+  /** Ponto aproximado (~1 km), visível para prestadores. */
+  approx_lat: number | null;
+  approx_lng: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -153,4 +159,14 @@ export type ServiceRequestDetail = ServiceRequestWithCategory & {
 
 export type QuoteWithProvider = Quote & {
   provider: PublicName;
+};
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+export type NearbyRequest = ServiceRequestWithCategory & {
+  distance_km: number | null;
+  already_quoted: boolean;
 };

@@ -23,7 +23,7 @@ Toda a regra de quem pode ver ou alterar cada informação fica no próprio banc
 
 **Cliente**
 - Cadastro e login
-- Criar pedido com categoria, descrição, endereço, data preferida e fotos
+- Criar pedido com categoria, descrição, endereço, local no mapa, data preferida e fotos
 - Comparar orçamentos: preço, tempo estimado, garantia e nota de cada profissional
 - Aceitar e **pagar pelo app** (Pix, cartão ou boleto pelo Mercado Pago). O valor fica retido até o serviço ser confirmado
 - Acompanhar fotos de antes e depois e o prazo do serviço
@@ -32,7 +32,8 @@ Toda a regra de quem pode ver ou alterar cada informação fica no próprio banc
 
 **Prestador**
 - Cadastro com **CNPJ obrigatório** (MEI serve), conferido na Receita Federal pela BrasilAPI
-- Perfil com as categorias que atende, cidade e descrição
+- Perfil com as categorias que atende, descrição e **base e raio de atendimento no mapa**
+- Achar pedidos em **lista (do mais perto para o mais longe) ou no mapa**, filtrando pela distância ou usando a localização atual
 - Ver pedidos abertos nas suas categorias e enviar orçamento com valor, **tempo estimado** e **garantia** (mínimo de 90 dias, pelo Código de Defesa do Consumidor)
 - Enviar foto de antes para iniciar e foto de depois para finalizar
 - Avaliar o cliente de 0 a 5 e resolver acionamentos de garantia
@@ -48,7 +49,9 @@ Toda a regra de quem pode ver ou alterar cada informação fica no próprio banc
 - O repasse ao prestador ainda é manual: o dinheiro cai na conta do Help Home e aparece como "liberado ao prestador" quando o cliente confirma.
 - Sem o `MERCADOPAGO_ACCESS_TOKEN`, em desenvolvimento o site usa um **modo de teste** que simula o Pix sem cobrar nada. Em produção o modo de teste fica desligado (a não ser que `PAGAMENTO_MODO_TESTE=true`).
 
-**Privacidade:** o endereço completo e o telefone só aparecem para o cliente e o profissional escolhido. O chat é só entre os dois.
+**Privacidade:** o endereço completo, o ponto exato no mapa e o telefone só aparecem para o cliente e o profissional escolhido. Os outros prestadores veem só a região aproximada (cerca de 1 km). O chat é só entre os dois.
+
+**Mapas:** usam o OpenStreetMap (Leaflet) e a busca de endereço do Nominatim, os dois gratuitos e sem chave. Com mais tráfego, vale trocar os blocos do mapa por um provedor pago (MapTiler, Mapbox) para respeitar a política de uso do OpenStreetMap.
 
 ## Rodando no seu computador
 

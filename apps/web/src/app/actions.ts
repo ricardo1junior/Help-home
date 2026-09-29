@@ -146,6 +146,9 @@ export async function saveProviderProfileAction(_: FormState, formData: FormData
       city: String(formData.get("city") ?? ""),
       bio: String(formData.get("bio") ?? ""),
       category_ids: formData.getAll("category_ids").map(Number),
+      base_lat: formData.get("base_lat") ? Number(formData.get("base_lat")) : null,
+      base_lng: formData.get("base_lng") ? Number(formData.get("base_lng")) : null,
+      service_radius_km: Number(formData.get("service_radius_km") || 20),
     });
   } catch (err) {
     return { error: toMessage(err) };

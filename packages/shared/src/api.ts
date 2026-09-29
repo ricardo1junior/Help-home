@@ -24,6 +24,8 @@ import {
 import type {
   Category,
   ClientRating,
+  LatLng,
+  NearbyRequest,
   Payment,
   PhotoKind,
   ServicePhoto,
@@ -155,15 +157,50 @@ export async function createRequest(
   clientId: string,
   input: NewRequestInput,
   photos: string[] = [],
+  location?: LatLng | null,
 ): Promise<{ id: string }> {
   const values = newRequestSchema.parse(input);
-  return unwrap(
+  const created = unwrap<{ id: string }>(
     await sb
       .from("service_requests")
       .insert({ ...values, client_id: clientId, photos })
       .select("id")
       .single(),
   );
+  if (location) await setRequestLocation(sb, created.id, location);
+  return created;
+}
+
+/** Ponto exato do pedido (só o cliente e o prestador escolhido conseguem ler). */
+export async function setRequestLocation(sb: Client, requestId: string, { lat, lng }: LatLng) {
+  unwrap(await sb.from("request_locations").upsert({ request_id: requestId, lat, lng }));
+}
+
+export async function getRequestLocation(sb: Client, requestId: string): Promise<LatLng | null> {
+  return unwrap(
+    await sb.from("request_locations").select("lat, lng").eq("request_id", requestId).maybeSingle(),
+  );
+}
+
+/**
+ * Pedidos abertos nas categorias do prestador, do mais perto para o mais longe.
+ * Pedidos sem localização aparecem no fim da lista (sem distância) quando não há raio.
+ */
+export async function listNearbyRequests(
+  sb: Client,
+  providerId: string,
+  origin: LatLng,
+  radiusKm?: number | null,
+): Promise<NearbyRequest[]> {
+  const nearby = unwrap<{ id: string; distance_km: number }[]>(
+    await sb.rpc("nearby_open_requests", { p_lat: origin.lat, p_lng: origin.lng, p_radius_km: radiusKm ?? null }),
+  );
+  const all = await listOpenRequestsForProvider(sb, providerId);
+  const distance = new Map(nearby.map((n) => [n.id, n.distance_km]));
+  return all
+    .filter((r) => distance.has(r.id) || (!radiusKm && r.approx_lat == null))
+    .map((r) => ({ ...r, distance_km: distance.get(r.id) ?? null }))
+    .sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity));
 }
 
 export async function listClientRequests(sb: Client, clientId: string): Promise<ServiceRequestWithCategory[]> {

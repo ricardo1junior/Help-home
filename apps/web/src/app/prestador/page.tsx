@@ -1,16 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
+  formatDistance,
   formatPrice,
   getProviderCategoryIds,
   getProviderRatings,
+  listNearbyRequests,
   listOpenRequestsForProvider,
+  type LatLng,
   listProviderJobs,
   listProviderQuotes,
 } from "@helphome/shared";
 import { requireProfile } from "@/lib/session";
 import { RequestCard } from "@/components/request-card";
 import { QuoteStatusBadge } from "@/components/status-badge";
+import { NearbyControls } from "./nearby-controls";
+import { RequestsMap } from "./requests-map";
 
 export const metadata: Metadata = { title: "Painel do prestador" };
 
@@ -22,7 +27,7 @@ const TABS = [
 
 export default async function PrestadorPage({ searchParams }: PageProps<"/prestador">) {
   const { supabase, profile } = await requireProfile("provider");
-  const { aba, todas } = await searchParams;
+  const { aba, todas, ver, raio, lat, lng } = await searchParams;
   const tab = TABS.find((t) => t.key === aba)?.key ?? "disponiveis";
   const onlyMyCity = todas !== "1" && Boolean(profile.city);
 
@@ -69,7 +74,15 @@ export default async function PrestadorPage({ searchParams }: PageProps<"/presta
 
       <div className="mt-6 space-y-3">
         {tab === "disponiveis" && (
-          <Available providerId={profile.id} city={onlyMyCity ? profile.city! : undefined} supabase={supabase} />
+          <Available
+            providerId={profile.id}
+            city={onlyMyCity ? profile.city! : undefined}
+            supabase={supabase}
+            view={ver === "mapa" ? "mapa" : "lista"}
+            radiusParam={typeof raio === "string" ? raio : String(profile.service_radius_km)}
+            current={toLatLng(lat, lng)}
+            base={toLatLng(profile.base_lat, profile.base_lng)}
+          />
         )}
         {tab === "orcamentos" && <MyQuotes providerId={profile.id} supabase={supabase} />}
         {tab === "servicos" && <MyJobs providerId={profile.id} supabase={supabase} />}
@@ -80,10 +93,73 @@ export default async function PrestadorPage({ searchParams }: PageProps<"/presta
 
 type Supabase = Awaited<ReturnType<typeof requireProfile>>["supabase"];
 
-async function Available({ providerId, city, supabase }: { providerId: string; city?: string; supabase: Supabase }) {
+function toLatLng(lat: unknown, lng: unknown): LatLng | null {
+  const a = Number(lat);
+  const b = Number(lng);
+  return lat != null && lng != null && lat !== "" && Number.isFinite(a) && Number.isFinite(b) ? { lat: a, lng: b } : null;
+}
+
+async function Available({
+  providerId,
+  city,
+  supabase,
+  view,
+  radiusParam,
+  current,
+  base,
+}: {
+  providerId: string;
+  city?: string;
+  supabase: Supabase;
+  view: "lista" | "mapa";
+  radiusParam: string;
+  current: LatLng | null;
+  base: LatLng | null;
+}) {
+  const origin = current ?? base;
+  if (origin) {
+    const radiusKm = radiusParam === "todos" ? null : Number(radiusParam) || 20;
+    const requests = await listNearbyRequests(supabase, providerId, origin, radiusKm);
+    return (
+      <>
+        <NearbyControls view={view} radius={radiusKm ? String(radiusKm) : "todos"} usingCurrent={Boolean(current)} />
+        <p className="text-sm text-slate-600">
+          {requests.length} pedido(s) {radiusKm ? `até ${radiusKm} km` : ""} de {current ? "onde você está agora" : "sua base"}, do mais perto para o mais longe.
+        </p>
+        {view === "mapa" ? (
+          <RequestsMap origin={origin} radiusKm={radiusKm} requests={requests} />
+        ) : requests.length === 0 ? (
+          <Empty text="Nenhum pedido aberto nessa distância. Tente aumentar o raio." />
+        ) : (
+          requests.map((r) => (
+            <RequestCard
+              key={r.id}
+              request={r}
+              extra={
+                <span className="flex items-center gap-3">
+                  {r.distance_km != null && <span className="font-medium text-slate-700">📍 a {formatDistance(r.distance_km)}</span>}
+                  {r.already_quoted ? (
+                    <span className="font-medium text-green-700">Orçamento enviado</span>
+                  ) : (
+                    <span className="font-medium text-brand-600">Enviar orçamento →</span>
+                  )}
+                </span>
+              }
+            />
+          ))
+        )}
+      </>
+    );
+  }
+
+  // Sem base definida: lista por cidade, como antes.
   const requests = await listOpenRequestsForProvider(supabase, providerId, city);
   return (
     <>
+      <div className="rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm">
+        📍 <Link href="/prestador/perfil" className="font-semibold text-brand-700 underline">Marque sua base no mapa</Link> para ver os
+        pedidos mais próximos e usar o mapa.
+      </div>
       <p className="text-sm text-slate-600">
         {city ? (
           <>Mostrando pedidos em <strong>{city}</strong>. <Link href="/prestador?todas=1" className="text-brand-600">Ver todas as cidades</Link></>

@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
   deadlineFrom,
+  distanceKm,
   formatDate,
   formatDateTime,
+  formatDistance,
   formatHours,
   formatPrice,
   getClientRating,
@@ -12,6 +14,7 @@ import {
   getProfile,
   getProviderRatings,
   getRequest,
+  getRequestLocation,
   listMessages,
   listQuotes,
   listReviewsForRequest,
@@ -31,6 +34,7 @@ import { QuoteForm } from "./quote-form";
 import { ReviewForm } from "./review-form";
 import { ServicePhotos } from "./service-photos";
 import { WarrantyForm } from "./warranty-form";
+import { RequestLocationMap } from "./request-location-map";
 
 export const metadata: Metadata = { title: "Pedido" };
 
@@ -69,6 +73,14 @@ export default async function PedidoPage({ params }: PageProps<"/pedidos/[id]">)
     isClient ? Promise.resolve(null) : getClientRating(supabase, request.client_id),
   ]);
   const ratings = await getProviderRatings(supabase, quotes.map((q) => q.provider_id));
+  const exactLocation = isParty ? await getRequestLocation(supabase, id) : null;
+  const approxLocation =
+    request.approx_lat != null && request.approx_lng != null ? { lat: request.approx_lat, lng: request.approx_lng } : null;
+  const providerBase =
+    profile.role === "provider" && profile.base_lat != null && profile.base_lng != null
+      ? { lat: profile.base_lat, lng: profile.base_lng }
+      : null;
+  const distanceFromBase = providerBase && (exactLocation ?? approxLocation) ? distanceKm(providerBase, (exactLocation ?? approxLocation)!) : null;
   const myQuote = quotes.find((q) => q.provider_id === profile.id);
   const acceptedQuote = quotes.find((q) => q.status === "accepted");
   const myReview = reviews.find((r) => r.reviewer_id === profile.id);
@@ -127,6 +139,27 @@ export default async function PedidoPage({ params }: PageProps<"/pedidos/[id]">)
             </dd>
           </div>
         </dl>
+        {(exactLocation || approxLocation) && (
+          <div className="mt-4 space-y-1">
+            <RequestLocationMap exact={exactLocation} approx={approxLocation} base={providerBase} icon={request.category.icon} />
+            <p className="flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+              <span>
+                {exactLocation ? "Local exato do serviço" : "Região aproximada. O endereço exato aparece se o cliente escolher você."}
+                {distanceFromBase != null && ` · a ${formatDistance(distanceFromBase)} da sua base`}
+              </span>
+              {exactLocation && isChosenProvider && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${exactLocation.lat},${exactLocation.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-brand-700"
+                >
+                  Como chegar →
+                </a>
+              )}
+            </p>
+          </div>
+        )}
         {request.photos.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
             {request.photos.map((url) => (

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ZodError } from "zod";
-import { createRequest, MAX_PHOTOS, uploadRequestPhoto, type Category } from "@helphome/shared";
+import { createRequest, MAX_PHOTOS, uploadRequestPhoto, type Category, type LatLng } from "@helphome/shared";
 import { createClient } from "@/lib/supabase/client";
 import { FormError } from "@/components/form-error";
+import { LocationPicker } from "@/components/map/location-picker";
 
 export function NewRequestForm({
   categories,
@@ -19,6 +20,9 @@ export function NewRequestForm({
   const router = useRouter();
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState(defaultCity);
+  const [location, setLocation] = useState<LatLng | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -26,6 +30,10 @@ export function NewRequestForm({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setError(null);
+    if (!location) {
+      setError("Marque no mapa o local do serviço.");
+      return;
+    }
     setPending(true);
     try {
       const supabase = createClient();
@@ -46,6 +54,7 @@ export function NewRequestForm({
           preferred_date: String(form.get("preferred_date") ?? ""),
         },
         photos,
+        location,
       );
       router.push(`/pedidos/${id}`);
       router.refresh();
@@ -96,12 +105,33 @@ export function NewRequestForm({
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="sm:col-span-2">
           <label className="label" htmlFor="address">Endereço</label>
-          <input className="input" id="address" name="address" placeholder="Rua, número, bairro" required />
+          <input
+            className="input"
+            id="address"
+            name="address"
+            placeholder="Rua, número, bairro"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+          />
         </div>
         <div>
           <label className="label" htmlFor="city">Cidade</label>
-          <input className="input" id="city" name="city" defaultValue={defaultCity} required />
+          <input className="input" id="city" name="city" value={city} onChange={(e) => setCity(e.target.value)} required />
         </div>
+      </div>
+      <div>
+        <p className="label">Local no mapa</p>
+        <LocationPicker
+          value={location}
+          onChange={(value) => {
+            setLocation(value);
+            setError(null);
+          }}
+          address={[address, city].filter(Boolean).join(", ")}
+          icon="🏠"
+          hint="Os prestadores só veem a região aproximada. O endereço exato aparece só para quem você contratar."
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

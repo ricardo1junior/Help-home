@@ -69,6 +69,9 @@ export const providerProfileSchema = z.object({
   city: z.string().trim().min(2, "Informe sua cidade"),
   bio: z.string().trim().max(1000).optional(),
   category_ids: z.array(z.coerce.number().int().positive()).min(1, "Escolha pelo menos uma categoria"),
+  base_lat: z.number().min(-90).max(90).nullable().optional(),
+  base_lng: z.number().min(-180).max(180).nullable().optional(),
+  service_radius_km: z.coerce.number().int().min(1).max(200).default(20),
 });
 export type ProviderProfileInput = z.input<typeof providerProfileSchema>;
 
