@@ -2,8 +2,10 @@ import { QUOTE_STATUS_LABEL, REQUEST_STATUS_LABEL, type QuoteStatus, type Reques
 
 const REQUEST_TONE: Record<RequestStatus, string> = {
   open: "bg-amber-100 text-amber-800",
+  awaiting_payment: "bg-orange-100 text-orange-800",
   assigned: "bg-blue-100 text-blue-800",
   in_progress: "bg-indigo-100 text-indigo-800",
+  awaiting_confirmation: "bg-purple-100 text-purple-800",
   completed: "bg-green-100 text-green-800",
   cancelled: "bg-slate-200 text-slate-600",
 };

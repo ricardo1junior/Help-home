@@ -8,7 +8,7 @@ export function ActionButton({
   confirm,
   children,
 }: {
-  action: () => Promise<void>;
+  action: () => Promise<string | void>;
   className: string;
   confirm?: string;
   children: React.ReactNode;
@@ -22,11 +22,8 @@ export function ActionButton({
       onClick={() => {
         if (confirm && !window.confirm(confirm)) return;
         startTransition(async () => {
-          try {
-            await action();
-          } catch {
-            window.alert("Não foi possível concluir a ação. Atualize a página e tente novamente.");
-          }
+          const error = await action();
+          if (error) window.alert(error);
         });
       }}
     >

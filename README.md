@@ -23,20 +23,35 @@ Toda a regra de quem pode ver ou alterar cada informação fica no próprio banc
 
 **Cliente**
 - Cadastro e login
-- Criar pedido com categoria, descrição, endereço, data preferida e fotos
-- Ver e comparar orçamentos (com a nota média de cada profissional)
-- Aceitar um orçamento, cancelar o pedido
-- Chat com o profissional escolhido e atalho para o WhatsApp
-- Marcar como concluído e avaliar com estrelas
+- Criar pedido com categoria, descrição, endereço, local no mapa, data preferida e fotos
+- Comparar orçamentos: preço, tempo estimado, garantia e nota de cada profissional
+- Aceitar e **pagar pelo app** (Pix, cartão ou boleto pelo Mercado Pago). O valor fica retido até o serviço ser confirmado
+- Acompanhar fotos de antes e depois e o prazo do serviço
+- Confirmar a conclusão (libera o pagamento), avaliar o prestador de 0 a 5 e acionar a garantia
+- Comprovante do serviço (com CNPJ do prestador, pagamento e garantia) para imprimir ou salvar em PDF
 
 **Prestador**
-- Cadastro e perfil com as categorias que atende, cidade e descrição
-- Ver pedidos abertos nas suas categorias (filtrando pela cidade)
-- Enviar ou retirar orçamento
-- Iniciar e concluir o serviço, conversar com o cliente
-- Acompanhar orçamentos, serviços e avaliações
+- Cadastro com **CNPJ obrigatório** (MEI serve), conferido na Receita Federal pela BrasilAPI
+- Perfil com as categorias que atende, descrição e **base e raio de atendimento no mapa**
+- Achar pedidos em **lista (do mais perto para o mais longe) ou no mapa**, filtrando pela distância ou usando a localização atual
+- Ver pedidos abertos nas suas categorias e enviar orçamento com valor, **tempo estimado** e **garantia** (mínimo de 90 dias, pelo Código de Defesa do Consumidor)
+- Enviar foto de antes para iniciar e foto de depois para finalizar
+- Avaliar o cliente de 0 a 5 e resolver acionamentos de garantia
 
-**Privacidade:** o endereço completo e o telefone só aparecem para o cliente e o profissional escolhido. O chat é só entre os dois.
+**Regras de nota**
+- Clientes e prestadores recebem notas de 0 a 5.
+- A nota do prestador é a média das avaliações menos a penalidade por atraso: a cada 50% (ou fração) acima do tempo estimado, o serviço tira 0,5 ponto, até 2 pontos por serviço. Serviços em andamento que já passaram do prazo também contam.
+
+**Pagamento**
+- Ciclo do pedido: orçamentos → pagamento → agendado → em andamento → confirmação do cliente → concluído.
+- O cliente pode cancelar até o prestador iniciar; se já tinha pago, o valor é estornado.
+- A taxa da plataforma é de 10% (função `platform_fee_percent` no banco).
+- O repasse ao prestador ainda é manual: o dinheiro cai na conta do Help Home e aparece como "liberado ao prestador" quando o cliente confirma.
+- Sem o `MERCADOPAGO_ACCESS_TOKEN`, em desenvolvimento o site usa um **modo de teste** que simula o Pix sem cobrar nada. Em produção o modo de teste fica desligado (a não ser que `PAGAMENTO_MODO_TESTE=true`).
+
+**Privacidade:** o endereço completo, o ponto exato no mapa e o telefone só aparecem para o cliente e o profissional escolhido. Os outros prestadores veem só a região aproximada (cerca de 1 km). O chat é só entre os dois.
+
+**Mapas:** usam o OpenStreetMap (Leaflet) e a busca de endereço do Nominatim, os dois gratuitos e sem chave. Com mais tráfego, vale trocar os blocos do mapa por um provedor pago (MapTiler, Mapbox) para respeitar a política de uso do OpenStreetMap.
 
 ## Rodando no seu computador
 
@@ -49,9 +64,9 @@ pnpm install
 ### Opção A: usar um projeto do Supabase na nuvem (mais simples)
 
 1. Crie um projeto grátis em [supabase.com](https://supabase.com).
-2. No painel, abra **SQL Editor**, cole o conteúdo de `supabase/migrations/20260929000000_init.sql` e rode.
+2. No painel, abra **SQL Editor**, rode, um de cada vez e na ordem do nome, o conteúdo de cada arquivo de `supabase/migrations`.
 3. Em **Authentication > URL Configuration**, coloque `http://localhost:3000` em *Site URL* e adicione `http://localhost:3000/auth/callback` em *Redirect URLs*.
-4. Copie `apps/web/.env.example` para `apps/web/.env.local` e preencha com a URL e a *publishable key* (em **Project Settings > API Keys**).
+4. Copie `apps/web/.env.example` para `apps/web/.env.local` e preencha com a URL, a *publishable key* e a *secret key* (em **Project Settings > API Keys**).
 5. Rode `pnpm dev` e abra http://localhost:3000.
 
 > Dica: para testar sem precisar confirmar e-mail, desative **Authentication > Sign In / Providers > Email > Confirm email**.
@@ -60,7 +75,7 @@ pnpm install
 
 ```bash
 npx supabase start          # sobe o banco e aplica as migrações
-npx supabase status         # mostra a URL e a publishable key para o .env.local
+npx supabase status         # mostra a URL e as chaves para o .env.local
 pnpm dev
 ```
 
@@ -73,13 +88,19 @@ pnpm dev
 | `pnpm lint`      | Verifica o código                   |
 | `pnpm typecheck` | Verifica os tipos TypeScript        |
 
+## Ligando o Mercado Pago
+
+1. Crie uma conta em [mercadopago.com.br/developers](https://www.mercadopago.com.br/developers) e uma aplicação do tipo *Checkout Pro*.
+2. Copie o **Access Token** (use o de teste primeiro) para `MERCADOPAGO_ACCESS_TOKEN`.
+3. Em **Webhooks**, cadastre `https://SEU-SITE/api/pagamentos/mercadopago` com o evento *Pagamentos* e copie a assinatura secreta para `MERCADOPAGO_WEBHOOK_SECRET`.
+
 ## Publicando o site
 
-A forma mais simples é a [Vercel](https://vercel.com): importe o repositório, escolha `apps/web` como *Root Directory* e cadastre as duas variáveis do `.env.example`. Depois, adicione a URL do site em **Authentication > URL Configuration** no Supabase.
+A forma mais simples é a [Vercel](https://vercel.com): importe o repositório, escolha `apps/web` como *Root Directory* e cadastre as variáveis do `.env.example`. Depois, adicione a URL do site em **Authentication > URL Configuration** no Supabase.
 
 ## Próximos passos
 
 - App para iOS e Android com Expo (React Native) em `apps/mobile`, reaproveitando o `@helphome/shared`
 - Notificações (e-mail e push) quando chega orçamento ou mensagem
-- Pagamento pelo app (Pix e cartão)
-- Verificação de documentos dos prestadores e painel administrativo
+- Repasse automático ao prestador (split do Mercado Pago) e liberação automática se o cliente não confirmar em alguns dias
+- Painel administrativo (disputas, garantias, repasses)

@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useFormAction } from "@/hooks/use-form-action";
 import { signInAction } from "@/app/actions";
 import { FormError } from "@/components/form-error";
 
 export function SignInForm({ next }: { next: string }) {
-  const [state, action, pending] = useActionState(signInAction, undefined);
+  const [state, action, pending] = useFormAction(signInAction, undefined);
   return (
-    <form action={action} className="card mt-6 space-y-4">
+    <form onSubmit={action} className="card mt-6 space-y-4">
       <input type="hidden" name="next" value={next} />
       <div>
         <label className="label" htmlFor="email">E-mail</label>
