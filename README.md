@@ -8,7 +8,8 @@ O cliente descreve o problema, recebe orçamentos de profissionais da região, e
 ```
 help-home/
 ├── apps/
-│   └── web/              Site (Next.js + Tailwind)
+│   ├── web/              Site (Next.js + Tailwind)
+│   └── mobile/           App para iOS e Android (Expo)
 ├── packages/
 │   └── shared/           Código compartilhado entre site e app: tipos, validações e acesso ao banco
 └── supabase/
@@ -79,6 +80,10 @@ npx supabase status         # mostra a URL e as chaves para o .env.local
 pnpm dev
 ```
 
+## App para iOS e Android
+
+O app fica em `apps/mobile` e tem as mesmas funções do site. Veja como testar no celular e publicar nas lojas em [`apps/mobile/README.md`](apps/mobile/README.md).
+
 ## Comandos
 
 | Comando          | O que faz                           |
@@ -100,7 +105,7 @@ A forma mais simples é a [Vercel](https://vercel.com): importe o repositório, 
 
 ## Próximos passos
 
-- App para iOS e Android com Expo (React Native) em `apps/mobile`, reaproveitando o `@helphome/shared`
+- Publicar o app nas lojas (veja `apps/mobile/README.md`)
 - Notificações (e-mail e push) quando chega orçamento ou mensagem
 - Repasse automático ao prestador (split do Mercado Pago) e liberação automática se o cliente não confirmar em alguns dias
 - Painel administrativo (disputas, garantias, repasses)

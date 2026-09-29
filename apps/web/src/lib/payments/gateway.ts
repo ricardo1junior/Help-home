@@ -7,6 +7,8 @@ export interface CheckoutInput {
   title: string;
   payerEmail?: string;
   siteUrl: string;
+  /** Para onde o cliente volta depois de pagar. */
+  backUrl: string;
 }
 
 export interface PaymentGateway {
