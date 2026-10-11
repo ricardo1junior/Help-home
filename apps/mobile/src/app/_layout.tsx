@@ -1,11 +1,14 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { NotificationBanner } from '@/components/notification-ui';
 import { AuthProvider } from '@/lib/auth';
+import { NotificationsProvider } from '@/lib/notifications';
 import { colors } from '@/lib/theme';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <NotificationsProvider>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -22,7 +25,11 @@ export default function RootLayout() {
         <Stack.Screen name="pedido/[id]" options={{ title: 'Pedido' }} />
         <Stack.Screen name="chat/[id]" options={{ title: 'Conversa' }} />
         <Stack.Screen name="pagamento/[id]" options={{ title: 'Pagamento' }} />
+        <Stack.Screen name="notificacoes" options={{ title: 'Avisos' }} />
+        <Stack.Screen name="profissional/[id]" options={{ title: 'Profissional' }} />
       </Stack>
+      <NotificationBanner />
+      </NotificationsProvider>
     </AuthProvider>
   );
 }

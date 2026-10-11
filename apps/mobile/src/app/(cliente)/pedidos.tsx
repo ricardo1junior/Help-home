@@ -4,15 +4,17 @@ import { RefreshControl } from 'react-native';
 import { EmptyState, RequestCard } from '@/components/request-card';
 import { Button, ErrorText, Loading, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { useNotifications } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { useData } from '@/lib/use-data';
 
 export default function MeusPedidos() {
   const router = useRouter();
   const { profile } = useAuth();
+  const { version } = useNotifications();
   const { data, error, refresh, refreshing, loading } = useData(
     () => listClientRequests(supabase, profile!.id),
-    [profile?.id],
+    [profile?.id, version],
   );
 
   if (loading) return <Loading />;

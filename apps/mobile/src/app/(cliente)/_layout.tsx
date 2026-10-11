@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { NotificationBell } from '@/components/notification-ui';
 import { tabIcon } from '@/components/tab-icon';
 import { Loading } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -12,7 +13,8 @@ export default function ClienteLayout() {
   if (profile?.role === 'provider') return <Redirect href="/disponiveis" />;
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: colors.brandDark, headerTitleStyle: { color: colors.text } }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: colors.brandDark, headerTitleStyle: { color: colors.text }, headerRight: () => <NotificationBell /> }}>
+      <Tabs.Screen name="inicio" options={{ title: 'Help Home', tabBarLabel: 'Início', tabBarIcon: tabIcon('🏠') }} />
       <Tabs.Screen name="pedidos" options={{ title: 'Meus pedidos', tabBarLabel: 'Pedidos', tabBarIcon: tabIcon('📋') }} />
       <Tabs.Screen name="novo" options={{ title: 'Novo pedido', tabBarLabel: 'Pedir serviço', tabBarIcon: tabIcon('➕') }} />
       <Tabs.Screen name="conta" options={{ title: 'Minha conta', tabBarLabel: 'Conta', tabBarIcon: tabIcon('👤') }} />

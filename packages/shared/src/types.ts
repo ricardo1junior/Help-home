@@ -29,6 +29,8 @@ export interface Profile {
   base_lat: number | null;
   base_lng: number | null;
   service_radius_km: number;
+  /** Prestador recebendo pedidos novos (avisos de pedidos perto dele). */
+  available: boolean;
   created_at: string;
 }
 
@@ -55,6 +57,9 @@ export interface ServiceRequest {
   finished_at: string | null;
   completed_at: string | null;
   warranty_until: string | null;
+  /** Prestador avisou que saiu para o serviço / chegou. */
+  en_route_at: string | null;
+  arrived_at: string | null;
   /** Ponto aproximado (~1 km), visível para prestadores. */
   approx_lat: number | null;
   approx_lng: number | null;
@@ -170,3 +175,48 @@ export type NearbyRequest = ServiceRequestWithCategory & {
   distance_km: number | null;
   already_quoted: boolean;
 };
+
+export type NotificationKind =
+  | "new_request"
+  | "new_quote"
+  | "quote_accepted"
+  | "quote_rejected"
+  | "paid"
+  | "en_route"
+  | "arrived"
+  | "started"
+  | "finished"
+  | "completed"
+  | "cancelled"
+  | "message"
+  | "review"
+  | "warranty";
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  request_id: string | null;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+/** Posição ao vivo do prestador a caminho do serviço. */
+export interface ProviderTracking {
+  request_id: string;
+  provider_id: string;
+  lat: number;
+  lng: number;
+  heading: number | null;
+  updated_at: string;
+}
+
+/** Perfil público do prestador, com nota e avaliações. */
+export interface ProviderPublicProfile {
+  profile: Pick<Profile, "id" | "full_name" | "company_name" | "city" | "bio" | "cnpj_verified" | "created_at">;
+  rating: ProviderRating | null;
+  categories: Category[];
+  reviews: Review[];
+}

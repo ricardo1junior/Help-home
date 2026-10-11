@@ -82,7 +82,7 @@ pnpm dev
 
 ## App para iOS e Android
 
-O app fica em `apps/mobile` e tem as mesmas funções do site. Veja como testar no celular e publicar nas lojas em [`apps/mobile/README.md`](apps/mobile/README.md).
+O app fica em `apps/mobile` e tem as mesmas funções do site, mais avisos e push, atualização em tempo real e o prestador "a caminho" no mapa. Veja como testar no celular e publicar nas lojas em [`apps/mobile/README.md`](apps/mobile/README.md).
 
 ## Comandos
 
@@ -106,6 +106,6 @@ A forma mais simples é a [Vercel](https://vercel.com): importe o repositório, 
 ## Próximos passos
 
 - Publicar o app nas lojas (veja `apps/mobile/README.md`)
-- Notificações (e-mail e push) quando chega orçamento ou mensagem
+- Avisos por e-mail e central de avisos no site
 - Repasse automático ao prestador (split do Mercado Pago) e liberação automática se o cliente não confirmar em alguns dias
 - Painel administrativo (disputas, garantias, repasses)
