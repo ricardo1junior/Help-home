@@ -18,9 +18,17 @@ const STEPS: { status: RequestStatus; label: string }[] = [
   { status: 'completed', label: 'Concluído' },
 ];
 
-export function Stepper({ status }: { status: RequestStatus }) {
+export function Stepper({ request }: { request: RequestDetail['request'] }) {
+  const { status } = request;
   if (status === 'cancelled') return null;
   const current = STEPS.findIndex((s) => s.status === status);
+  // Depois de pago, a etapa "Agendado" vira "A caminho" e "Chegou".
+  const label = (s: (typeof STEPS)[number]) =>
+    s.status === 'assigned' && status === 'assigned' && request.en_route_at
+      ? request.arrived_at
+        ? 'Chegou'
+        : 'A caminho'
+      : s.label;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
       {STEPS.map((s, i) => (
@@ -31,7 +39,7 @@ export function Stepper({ status }: { status: RequestStatus }) {
             i < current && { backgroundColor: '#ffedd5', color: colors.brandDark },
             i === current && { backgroundColor: colors.brand, color: '#fff' },
           ]}>
-          {s.label}
+          {label(s)}
         </Text>
       ))}
     </ScrollView>

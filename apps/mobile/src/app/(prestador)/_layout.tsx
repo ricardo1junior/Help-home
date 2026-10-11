@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { NotificationBell } from '@/components/notification-ui';
 import { tabIcon } from '@/components/tab-icon';
 import { Loading } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -9,10 +10,10 @@ export default function PrestadorLayout() {
   const { session, profile, loading } = useAuth();
   if (loading) return <Loading />;
   if (!session) return <Redirect href="/" />;
-  if (profile?.role === 'client') return <Redirect href="/pedidos" />;
+  if (profile?.role === 'client') return <Redirect href="/inicio" />;
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: colors.brandDark, headerTitleStyle: { color: colors.text } }}>
+    <Tabs screenOptions={{ tabBarActiveTintColor: colors.brandDark, headerTitleStyle: { color: colors.text }, headerRight: () => <NotificationBell /> }}>
       <Tabs.Screen
         name="disponiveis"
         options={{ title: 'Pedidos perto de você', tabBarLabel: 'Disponíveis', tabBarIcon: tabIcon('🗺️') }}

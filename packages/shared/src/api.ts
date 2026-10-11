@@ -22,6 +22,7 @@ import {
   warrantyClaimSchema,
 } from "./schemas";
 import type {
+  AppNotification,
   Category,
   ClientRating,
   LatLng,
@@ -32,7 +33,9 @@ import type {
   WarrantyClaim,
   Message,
   Profile,
+  ProviderPublicProfile,
   ProviderRating,
+  ProviderTracking,
   Quote,
   QuoteWithProvider,
   RequestStatus,
@@ -424,4 +427,166 @@ export async function listReviewsAbout(sb: Client, profileId: string): Promise<R
 
 export async function getClientRating(sb: Client, clientId: string): Promise<ClientRating | null> {
   return unwrap(await sb.from("client_ratings").select("*").eq("client_id", clientId).maybeSingle());
+}
+
+// ---------------------------------------------------------------------------
+// Tempo real
+// ---------------------------------------------------------------------------
+
+type ChangeEvent = "INSERT" | "UPDATE" | "DELETE" | "*";
+
+/**
+ * Escuta mudanças em tabelas (o RLS do banco decide o que cada um recebe).
+ * Retorna a função para parar de escutar.
+ */
+export function subscribeToChanges(
+  sb: Client,
+  name: string,
+  tables: { table: string; filter?: string; event?: ChangeEvent }[],
+  onChange: () => void,
+) {
+  let channel = sb.channel(`${name}:${Math.random().toString(36).slice(2)}`);
+  for (const t of tables) {
+    channel = channel.on(
+      "postgres_changes" as never,
+      { event: t.event ?? "*", schema: "public", table: t.table, ...(t.filter ? { filter: t.filter } : {}) },
+      () => onChange(),
+    );
+  }
+  channel.subscribe();
+  return () => {
+    void sb.removeChannel(channel);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Notificações
+// ---------------------------------------------------------------------------
+
+export async function listNotifications(sb: Client, userId: string, limit = 50): Promise<AppNotification[]> {
+  return unwrap(
+    await sb
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+  );
+}
+
+export async function countUnreadNotifications(sb: Client, userId: string): Promise<number> {
+  const { count, error } = await sb
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .is("read_at", null);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+/** Marca como lidas (todas, ou só as de um pedido). */
+export async function markNotificationsRead(sb: Client, userId: string, requestId?: string) {
+  let query = sb.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", userId).is("read_at", null);
+  if (requestId) query = query.eq("request_id", requestId);
+  unwrap(await query);
+}
+
+/** Avisa a cada notificação nova da pessoa. */
+export function subscribeToNotifications(sb: Client, userId: string, onNew: (n: AppNotification) => void) {
+  const channel = sb
+    .channel(`notifications:${userId}:${Math.random().toString(36).slice(2)}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+      (payload) => onNew(payload.new as AppNotification),
+    )
+    .subscribe();
+  return () => {
+    void sb.removeChannel(channel);
+  };
+}
+
+/** Registra o aparelho para receber push. */
+export async function registerPushToken(sb: Client, token: string, platform: string) {
+  unwrap(await sb.rpc("register_push_token", { p_token: token, p_platform: platform }));
+}
+
+export async function unregisterPushToken(sb: Client, token: string) {
+  unwrap(await sb.from("push_tokens").delete().eq("token", token));
+}
+
+// ---------------------------------------------------------------------------
+// Prestador a caminho e disponibilidade
+// ---------------------------------------------------------------------------
+
+export async function setProviderAvailable(sb: Client, userId: string, available: boolean) {
+  unwrap(await sb.from("profiles").update({ available }).eq("id", userId));
+}
+
+export async function startEnRoute(sb: Client, requestId: string) {
+  unwrap(await sb.rpc("start_en_route", { p_request_id: requestId }));
+}
+
+export async function markArrived(sb: Client, requestId: string) {
+  unwrap(await sb.rpc("mark_arrived", { p_request_id: requestId }));
+}
+
+export async function updateProviderLocation(sb: Client, requestId: string, { lat, lng }: LatLng, heading?: number | null) {
+  unwrap(
+    await sb.rpc("update_provider_location", {
+      p_request_id: requestId,
+      p_lat: lat,
+      p_lng: lng,
+      p_heading: heading ?? null,
+    }),
+  );
+}
+
+export async function getProviderTracking(sb: Client, requestId: string): Promise<ProviderTracking | null> {
+  return unwrap(await sb.from("provider_tracking").select("*").eq("request_id", requestId).maybeSingle());
+}
+
+/** Posição ao vivo do prestador (para o cliente acompanhar no mapa). */
+export function subscribeToTracking(sb: Client, requestId: string, onMove: (t: ProviderTracking | null) => void) {
+  const channel = sb
+    .channel(`tracking:${requestId}:${Math.random().toString(36).slice(2)}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "provider_tracking", filter: `request_id=eq.${requestId}` },
+      (payload) => onMove(payload.eventType === "DELETE" ? null : (payload.new as ProviderTracking)),
+    )
+    .subscribe();
+  return () => {
+    void sb.removeChannel(channel);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Perfil público do prestador
+// ---------------------------------------------------------------------------
+
+export async function getProviderPublicProfile(sb: Client, providerId: string): Promise<ProviderPublicProfile | null> {
+  const profile = unwrap<ProviderPublicProfile["profile"] | null>(
+    await sb
+      .from("profiles")
+      .select("id, full_name, company_name, city, bio, cnpj_verified, created_at")
+      .eq("id", providerId)
+      .eq("role", "provider")
+      .maybeSingle(),
+  );
+  if (!profile) return null;
+  const [ratings, categoryRows, reviews] = await Promise.all([
+    getProviderRatings(sb, [providerId]),
+    sb.from("provider_categories").select("category:categories(*)").eq("provider_id", providerId),
+    listReviewsAbout(sb, providerId),
+  ]);
+  const categories = unwrap<{ category: Category }[]>(categoryRows).map((r) => r.category);
+  return { profile, rating: ratings.get(providerId) ?? null, categories, reviews };
+}
+
+/** Pagamentos dos serviços do prestador (para o resumo de ganhos). */
+export async function listProviderPayments(sb: Client, providerId: string): Promise<Payment[]> {
+  return unwrap(
+    await sb.from("payments").select("*").eq("provider_id", providerId).order("created_at", { ascending: false }),
+  );
 }

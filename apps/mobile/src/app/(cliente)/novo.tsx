@@ -1,6 +1,6 @@
 import { createRequest, listCategories, MAX_PHOTOS, type LatLng } from '@helphome/shared';
 import type { ImagePickerAsset } from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { LocationPicker } from '@/components/location-picker';
@@ -20,7 +20,15 @@ export default function NovoPedido() {
   const router = useRouter();
   const { profile } = useAuth();
   const categories = useData(() => listCategories(supabase), []);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  // A categoria pode vir da tela inicial; escolher outra aqui tem prioridade.
+  const { categoria } = useLocalSearchParams<{ categoria?: string }>();
+  const [prevCategoria, setPrevCategoria] = useState(categoria);
+  const [picked, setCategoryId] = useState<number | null>(null);
+  if (categoria !== prevCategoria) {
+    setPrevCategoria(categoria);
+    setCategoryId(null);
+  }
+  const categoryId = picked ?? (categoria ? Number(categoria) : null);
   const [form, setForm] = useState({ ...EMPTY, city: profile?.city ?? '' });
   const [photos, setPhotos] = useState<ImagePickerAsset[]>([]);
   const [location, setLocation] = useState<LatLng | null>(null);
@@ -62,6 +70,7 @@ export default function NovoPedido() {
       setPhotos([]);
       setLocation(null);
       setCategoryId(null);
+      router.setParams({ categoria: undefined });
       router.push({ pathname: '/pedido/[id]', params: { id } });
     } catch (err) {
       setError(toMessage(err));

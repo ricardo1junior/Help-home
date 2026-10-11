@@ -10,7 +10,7 @@ export default function Index() {
   const router = useRouter();
 
   if (loading) return <Loading />;
-  if (session && profile) return <Redirect href={profile.role === 'provider' ? '/disponiveis' : '/pedidos'} />;
+  if (session && profile) return <Redirect href={profile.role === 'provider' ? '/disponiveis' : '/inicio'} />;
   if (session && !profile) return <Loading />;
 
   return (

@@ -4,10 +4,17 @@ App do Help Home feito com [Expo](https://expo.dev) (React Native). Usa o mesmo 
 
 ## O que tem no app
 
+**Tempo real, como Uber e iFood**
+- Tudo se atualiza sozinho: orçamento novo, pagamento, fotos e mudança de etapa aparecem na hora, sem puxar a tela.
+- Central de avisos (🔔 com contador), faixa no topo quando chega algo com o app aberto e **push no celular** com o app fechado.
+- **Prestador a caminho:** o prestador toca em "Estou a caminho" e o cliente acompanha o carro no mapa, com distância e tempo estimado de chegada. "Cheguei" encerra o mapa e avisa o cliente.
+- O prestador liga ou desliga "Recebendo pedidos" e é avisado na hora quando surge um pedido no raio dele.
+
 **Cliente**
+- Tela inicial com as categorias e os pedidos em andamento
 - Criar conta e entrar
 - Pedir serviço com categoria, descrição, fotos (câmera ou galeria), endereço e **local no mapa** (localização atual ou busca do endereço)
-- Comparar orçamentos (preço, tempo estimado, garantia, nota e CNPJ do profissional) e aceitar
+- Comparar orçamentos (preço, tempo estimado, garantia, nota e CNPJ do profissional), ver o perfil público do profissional (nota, serviços feitos, % no prazo e avaliações) e aceitar
 - **Pagar pelo app** (Mercado Pago). O valor fica retido até você confirmar o serviço
 - Acompanhar o prazo e as fotos de antes e depois, confirmar a conclusão, avaliar de 0 a 5 e acionar a garantia
 - Cancelar (com estorno se já tinha pago) e conversar com o profissional no chat
@@ -18,6 +25,7 @@ App do Help Home feito com [Expo](https://expo.dev) (React Native). Usa o mesmo 
 - Enviar orçamento com valor, tempo estimado e garantia (mínimo de 90 dias)
 - Tirar foto de antes para iniciar e de depois para finalizar, com o prazo contando
 - Perfil com categorias, base e raio de atendimento no mapa, e a nota recebida
+- Resumo de ganhos: valor a receber (retido) e já liberado
 - Botão "Como chegar" para o endereço do cliente
 
 Pagamento, estorno e verificação do CNPJ passam pelo site (rotas em `apps/web/src/app/api/app`), porque usam chaves secretas que não podem ficar no celular. Então o app precisa do endereço do site.
@@ -36,6 +44,16 @@ Pagamento, estorno e verificação do CNPJ passam pelo site (rotas em `apps/web/
    ```
 
 4. Leia o QR code com a câmera (iPhone) ou com o Expo Go (Android).
+
+## Push no celular
+
+Os avisos dentro do app funcionam sempre. Para o push com o app fechado:
+
+1. Rode `npx eas-cli@latest init` na pasta `apps/mobile` para criar o projeto no EAS. Isso grava o `projectId` no `app.json`.
+2. Use um *development build* (`npx eas-cli@latest build --profile development`), porque o Expo Go no Android não recebe push.
+3. O banco envia o push direto pela Expo quando gera cada aviso (extensão `pg_net` do Supabase, já ligada pela migração).
+
+O "a caminho" envia a posição enquanto a tela do pedido está aberta no celular do prestador.
 
 ## Publicando nas lojas
 

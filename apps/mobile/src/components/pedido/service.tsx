@@ -8,6 +8,7 @@ import {
   type PhotoKind,
   type RequestStatus,
 } from '@helphome/shared';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 import { VerifiedBadge } from '@/components/badges';
@@ -31,6 +32,7 @@ export function ServiceSection({
   act: Act;
   setStatus: (s: RequestStatus) => Promise<void>;
 }) {
+  const router = useRouter();
   const { request, isClient, isChosenProvider, isParty, paid, otherParty, quotes } = detail;
   if (!paid || !otherParty || !isParty) return null;
   const accepted = quotes.find((q) => q.status === 'accepted');
@@ -49,6 +51,13 @@ export function ServiceSection({
         {isClient && <VerifiedBadge verified={otherParty.cnpj_verified} />}
       </Row>
       {isClient && otherParty.company_name && <Muted>{otherParty.full_name}</Muted>}
+      {isClient && (
+        <Muted
+          style={{ color: colors.brandDark, fontWeight: '600' }}
+          onPress={() => router.push({ pathname: '/profissional/[id]', params: { id: otherParty.id } })}>
+          Ver perfil e avaliações ›
+        </Muted>
+      )}
       {otherParty.city && <Muted>{otherParty.city}</Muted>}
       {phone && (
         <Button

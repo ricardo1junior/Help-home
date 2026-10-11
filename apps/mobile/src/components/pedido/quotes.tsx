@@ -9,7 +9,7 @@ import {
 } from '@helphome/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { QuoteStatusBadge, ratingText, VerifiedBadge } from '@/components/badges';
 import { Button, Card, ErrorText, Input, Muted, Row, SectionTitle } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -52,12 +52,17 @@ export function ClientQuotes({ detail, act }: { detail: RequestDetail; act: Act 
         const rating = ratings.get(q.provider_id);
         return (
           <View key={q.id} style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.md, gap: 4 }}>
-            <Row>
-              <Text style={{ fontWeight: '700', color: colors.text, fontSize: 16 }}>
-                {q.provider.company_name || q.provider.full_name}
-              </Text>
-              <VerifiedBadge verified={q.provider.cnpj_verified} />
-            </Row>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push({ pathname: '/profissional/[id]', params: { id: q.provider_id } })}>
+              <Row>
+                <Text style={{ fontWeight: '700', color: colors.text, fontSize: 16 }}>
+                  {q.provider.company_name || q.provider.full_name}
+                </Text>
+                <VerifiedBadge verified={q.provider.cnpj_verified} />
+                <Text style={{ color: colors.brandDark, fontWeight: '600', fontSize: 13 }}>Ver perfil ›</Text>
+              </Row>
+            </Pressable>
             <Text style={{ color: colors.text }}>{ratingText(rating?.average, rating?.total ?? 0, rating?.late_jobs)}</Text>
             <Muted style={{ fontSize: 13 }}>
               Leva cerca de {formatHours(q.estimated_hours)} · garantia de {q.warranty_days} dias
